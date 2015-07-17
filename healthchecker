@@ -3,7 +3,7 @@ NAMESPACE=$1
 SERVICE_NAME=$2
 COLOR=$3
 
-TARGET_COUNT=`etcdctl get /${NAMESPACE}/${SERVICE_NAME}/${COLOR}/count`
+TARGET_COUNT=`etcdctl get /${NAMESPACE}/${SERVICE_NAME}/count`
 echo $TARGET_COUNT
 
 echo "Waiting for ${TARGET_COUNT} servers..."
