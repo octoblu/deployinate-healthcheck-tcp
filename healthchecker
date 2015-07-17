@@ -23,36 +23,18 @@ if [ ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; then
   exit 1
 fi
 
-IS_UP () {
-  URL=$1
-  X=0
-
-  while [ "$X" -lt 60 ]; do
-    X=$((x+1))
-    HEALTHCHECK_STATUS=$(curl -I $URL | head -n 1 | awk '{print $2}' | grep '200')
-
-    if [ -n "$HEALTHCHECK_STATUS" ]; then
-      return 0
-    fi
-
-    sleep 5
-  done
-
-  return 1
-}
-
 x=0
 CURRENT_COUNT=0
 
-while [ "$x" -lt 60 -a -z ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; do
+while [ "$x" -lt 60 -a ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; do
    echo "Checking healthcheck status, attempt ${x}..."
    CURRENT_INSTANCE=$((CURRENT_COUNT+1))
    SERVER_URL=`etcdctl get /vulcand/backends/${NAMESPACE}-${SERVICE_NAME}-${COLOR}/servers/${NAMESPACE}-${SERVICE_NAME}-${COLOR}-${CURRENT_INSTANCE} | jq -r '.URL'`
-   HEALTHCHECK_STATUS=$(curl -I ${SERVER_URL}/healthcheck | head -n 1 | awk '{print $2}' | grep '200')
+   HEALTHCHECK_STATUS=$(curl --silent -I ${SERVER_URL}/healthcheck | head -n 1 | awk '{print $2}' | grep '200')
    if [ -n "$HEALTHCHECK_STATUS" ]; then
      CURRENT_COUNT=$((CURRENT_COUNT+1))
      continue
-   done
+   fi
    x=$((x+1))
    sleep 1
 done
