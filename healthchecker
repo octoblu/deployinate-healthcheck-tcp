@@ -4,7 +4,6 @@ SERVICE_NAME=$2
 COLOR=$3
 
 TARGET_COUNT=`etcdctl get /${NAMESPACE}/${SERVICE_NAME}/count`
-echo $TARGET_COUNT
 
 echo "Waiting for ${TARGET_COUNT} servers..."
 x=0
@@ -27,9 +26,9 @@ x=0
 CURRENT_COUNT=0
 
 while [ "$x" -lt 60 -a ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; do
-   echo "Checking healthcheck status, attempt ${x}..."
    CURRENT_INSTANCE=$((CURRENT_COUNT+1))
    SERVER_URL=`etcdctl get /vulcand/backends/${NAMESPACE}-${SERVICE_NAME}-${COLOR}/servers/${NAMESPACE}-${SERVICE_NAME}-${COLOR}-${CURRENT_INSTANCE} | jq -r '.URL'`
+   echo "Checking healthcheck status, attempt ${x} (${SERVER_URL})..."
    HEALTHCHECK_STATUS=$(curl --silent -I ${SERVER_URL}/healthcheck | head -n 1 | awk '{print $2}' | grep '200')
    if [ -n "$HEALTHCHECK_STATUS" ]; then
      CURRENT_COUNT=$((CURRENT_COUNT+1))
