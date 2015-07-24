@@ -9,7 +9,7 @@ echo "Waiting for ${TARGET_COUNT} servers..."
 x=0
 CURRENT_COUNT=0
 while [ "$x" -lt 20 -a ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; do
-   CURRENT_COUNT=`etcdctl ls /vulcand/backends/${NAMESPACE}-${SERVICE_NAME}-${COLOR}/servers | wc -l`
+   CURRENT_COUNT=`etcdctl ls /${NAMESPACE}/${SERVICE_NAME}/etcd-netfw/backends/${COLOR} 2>/dev/null | wc -l`
    if [ ${TARGET_COUNT} -eq ${CURRENT_COUNT} ]; then
      continue
    fi
@@ -26,16 +26,21 @@ x=0
 CURRENT_COUNT=0
 
 while [ "$x" -lt 60 -a ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; do
-   CURRENT_INSTANCE=$((CURRENT_COUNT+1))
-   SERVER_URL=`etcdctl get /vulcand/backends/${NAMESPACE}-${SERVICE_NAME}-${COLOR}/servers/${NAMESPACE}-${SERVICE_NAME}-${COLOR}-${CURRENT_INSTANCE} | jq -r '.URL'`
-   echo "Checking healthcheck status, attempt ${x} (${SERVER_URL})..."
-   HEALTHCHECK_STATUS=$(curl --silent -I ${SERVER_URL}/healthcheck | head -n 1 | awk '{print $2}' | grep '200')
-   if [ -n "$HEALTHCHECK_STATUS" ]; then
-     CURRENT_COUNT=$((CURRENT_COUNT+1))
-     continue
-   fi
-   x=$((x+1))
-   sleep 1
+  CURRENT_INSTANCE=$((CURRENT_COUNT+1))
+  echo "Checking healthcheck status, attempt ${x}"
+  SERVER_HOST=`etcdctl get /${NAMESPACE}/${SERVICE_NAME}/etcd-netfw/backends/${COLOR}/${CURRENT_INSTANCE}/location | jq -r '.host'`
+  SERVER_PORT=`etcdctl get /${NAMESPACE}/${SERVICE_NAME}/etcd-netfw/backends/${COLOR}/${CURRENT_INSTANCE}/location | jq -r '.port'`
+
+  nc -z ${SERVER_HOST} ${SERVER_PORT}
+  HEALTHCHECK_STATUS=$?
+
+  echo "Got HEALTHCHECK_STATUS: ${HEALTHCHECK_STATUS}"
+  if [ $HEALTHCHECK_STATUS -eq 0 ]; then
+    CURRENT_COUNT=$((CURRENT_COUNT+1))
+    continue
+  fi
+  x=$((x+1))
+  sleep 1
 done
 
 if [ ${TARGET_COUNT} -ne ${CURRENT_COUNT} ]; then
